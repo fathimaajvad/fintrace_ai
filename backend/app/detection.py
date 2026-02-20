@@ -3,6 +3,20 @@ from app.scoring import calculate_scores
 
 def analyze_transactions(df):
 
+    # -------- 1. Required Column Validation --------
+    required_columns = [
+        "transaction_id",
+        "sender_id",
+        "receiver_id",
+        "amount",
+        "timestamp"
+    ]
+
+    for col in required_columns:
+        if col not in df.columns:
+            raise ValueError(f"Missing required column: {col}")
+
+    # -------- 2. Graph Construction --------
     G = nx.DiGraph()
 
     for _, row in df.iterrows():
@@ -13,8 +27,10 @@ def analyze_transactions(df):
             timestamp=row["timestamp"]
         )
 
+    # -------- 3. Detection & Scoring --------
     suspicious_accounts, fraud_rings = calculate_scores(G, df)
 
+    # -------- 4. Structured Result --------
     result = {
         "suspicious_accounts": suspicious_accounts,
         "fraud_rings": fraud_rings,

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import time
@@ -17,12 +17,24 @@ app.add_middleware(
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
-    start_time = time.time()
+    try:
+        start_time = time.time()
 
-    df = pd.read_csv(file.file)
+        # Read CSV
+        df = pd.read_csv(file.file)
 
-    result = analyze_transactions(df)
+        # Run detection logic
+        result = analyze_transactions(df)
 
-    result["summary"]["processing_time_seconds"] = round(time.time() - start_time, 2)
+        # Add processing time
+        result["summary"]["processing_time_seconds"] = round(
+            time.time() - start_time, 2
+        )
 
-    return result
+        return result
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )

@@ -30,7 +30,7 @@ def calculate_scores(G, df):
                 "ring_id": ring_id,
                 "member_accounts": cycle,
                 "pattern_type": "cycle",
-                "risk_score": float(90.0)
+                "risk_score": 90.0
             })
 
     # -------- 2. Fan-in / Fan-out Detection --------
@@ -65,24 +65,25 @@ def calculate_scores(G, df):
                 account_scores[account]["score"] += 15
                 account_scores[account]["patterns"].add("high_velocity")
 
-    # -------- 4. Shell Chain Detection --------
-    for source in G.nodes:
-        for target in G.nodes:
-            if source != target:
-                try:
-                    path = nx.shortest_path(G, source, target)
+    # -------- 4. Shell Chain Detection (Protected for Performance) --------
+    if len(G.nodes) < 300:
+        for source in G.nodes:
+            for target in G.nodes:
+                if source != target:
+                    try:
+                        path = nx.shortest_path(G, source, target)
 
-                    if len(path) >= 4:  # 3+ hops
-                        intermediate_nodes = path[1:-1]
+                        if len(path) >= 4:  # 3+ hops
+                            intermediate_nodes = path[1:-1]
 
-                        for node in intermediate_nodes:
-                            if G.degree(node) <= 3:
-                                if "shell_chain" not in account_scores[node]["patterns"]:
-                                    account_scores[node]["score"] += 20
-                                    account_scores[node]["patterns"].add("shell_chain")
+                            for node in intermediate_nodes:
+                                if G.degree(node) <= 3:
+                                    if "shell_chain" not in account_scores[node]["patterns"]:
+                                        account_scores[node]["score"] += 20
+                                        account_scores[node]["patterns"].add("shell_chain")
 
-                except nx.NetworkXNoPath:
-                    continue
+                    except nx.NetworkXNoPath:
+                        continue
 
     # -------- 5. False Positive Mitigation --------
     for account in account_scores:
@@ -94,7 +95,6 @@ def calculate_scores(G, df):
         if total_transactions > 200:
             account_scores[account]["score"] -= 20
 
-        # Ensure score never goes negative
         if account_scores[account]["score"] < 0:
             account_scores[account]["score"] = 0
 
